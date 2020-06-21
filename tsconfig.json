@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+    "target": "ES2019",
+    "module": "commonjs",
+    "outDir": "build",
+    "sourceMap": true,
+    "strict": true,
+    "moduleResolution": "node",
+    "types": ["node", "jest"],
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": false
+  },
+  "include": [
+    "src/**/*.ts"
+  ]
+}
