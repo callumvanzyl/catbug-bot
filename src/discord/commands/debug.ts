@@ -2,7 +2,7 @@ import { Message } from "discord.js"
 
 import { BotCommand } from "../bot-command"
 import { CatbugBot } from "../catbug-bot"
-import { Resolvable } from "../resolvable"
+import { CatbugEmbeds } from "../catbug-embeds"
 import { TextBasedChannel, secondsToDistance } from "../utils"
 import { DebugCommandArgs } from "./debug-command-args"
 
@@ -13,7 +13,7 @@ async function sendShardsStatus(bot: CatbugBot, channel: TextBasedChannel): Prom
             totalGuilds += item[0]
         })
         const totalShards = bot.client.shard?.count
-        const message = CatbugBot.genericCatbugEmbed()
+        const message = CatbugEmbeds.genericCatbugEmbed()
             .setTitle("Shard Status")
             .setDescription(
                 `There are currently ${totalShards} shard${totalShards !== 1 ? `s` : ``} ` +
@@ -46,8 +46,10 @@ const DebugCommand = new (class implements BotCommand<DebugCommandArgs> {
     list = false
 
     /* eslint-disable-next-line class-methods-use-this  */
-    buildArgs(args: string[]): Resolvable.Result<DebugCommandArgs> {
-        return new Resolvable.Success(new DebugCommandArgs(args))
+    async buildArgs(args: string[]): Promise<DebugCommandArgs> {
+        return new Promise<DebugCommandArgs>((resolve, reject) => {
+            return resolve(new DebugCommandArgs(args))
+        })
     }
 
     /* eslint-disable-next-line class-methods-use-this  */
