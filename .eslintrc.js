@@ -26,13 +26,15 @@ module.exports = {
         project: "./tsconfig.json"
     },
     rules: {
+        "no-console": "off",
         "no-prototype-builtins": "off",
-        "import/prefer-default-export": "off",
-        "import/no-default-export": "error",
         "no-use-before-define": [
             "error",
             { functions: false, classes: true, variables: true },
         ],
+        "import/no-default-export": "error",
+        "import/no-cycle": "off",
+        "import/prefer-default-export": "off",
         "@typescript-eslint/explicit-function-return-type": [
             "error",
             { allowExpressions: true, allowTypedFunctionExpressions: true },
@@ -41,10 +43,9 @@ module.exports = {
             "error",
             { functions: false, classes: true, variables: true, typedefs: true },
         ],
+        "unicorn/no-process-exit" : "off",
         "unicorn/no-useless-undefined": "off",
-        "unicorn/prevent-abbreviations": "off",
-        "no-console": "off",
-        "unicorn/no-process-exit" : "off"
+        "unicorn/prevent-abbreviations": "off"
     },
 }
 

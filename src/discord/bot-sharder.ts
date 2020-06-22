@@ -8,7 +8,6 @@ export class BotSharder {
     constructor(readonly numberOfShards = 1) {
         this.shardingManager = new ShardingManager("./src/discord/catbug-bot-shard.ts", {
             totalShards: numberOfShards,
-            shardArgs: ["--shard"],
             execArgv: ["-r", "ts-node/register"],
             token: process.env.BOT_TOKEN,
         })

@@ -3,8 +3,8 @@ import { Message } from "discord.js"
 import { GuildSettings } from "../../schema/guild-settings"
 import { BotCommand } from "../bot-command"
 import { CatbugBot } from "../catbug-bot"
+import { CatbugEmbeds } from "../catbug-embeds"
 import { Logger } from "../logger"
-import { Resolvable } from "../resolvable"
 import { PrefixCommandArgs } from "./prefix-command-args"
 
 const prefixMinLength = 2
@@ -20,23 +20,25 @@ const PrefixCommand = new (class implements BotCommand<PrefixCommandArgs> {
     list = true
 
     /* eslint-disable-next-line class-methods-use-this  */
-    buildArgs(args: string[]): Resolvable.Result<PrefixCommandArgs> {
-        if (args.length !== 1) {
-            return new Resolvable.Failure(new Error("Invalid parameters"))
-        }
+    async buildArgs(args: string[]): Promise<PrefixCommandArgs> {
+        return new Promise<PrefixCommandArgs>((resolve, reject) => {
+            if (args.length !== 1) {
+                return reject(new Error("Invalid parameters"))
+            }
 
-        if (args[0].length < prefixMinLength || args[0].length > prefixMaxLength) {
-            return new Resolvable.Failure(
-                new Error(`Prefix must be between ${prefixMinLength} and ${prefixMaxLength} characters long`),
-            )
-        }
+            if (args[0].length < prefixMinLength || args[0].length > prefixMaxLength) {
+                return reject(
+                    new Error(`Prefix must be between ${prefixMinLength} and ${prefixMaxLength} characters long`),
+                )
+            }
 
-        return new Resolvable.Success(new PrefixCommandArgs(args[0]))
+            return resolve(new PrefixCommandArgs(args[0]))
+        })
     }
 
     /* eslint-disable-next-line class-methods-use-this  */
     async execute(bot: CatbugBot, message: Message, args: PrefixCommandArgs): Promise<void> {
-        const feedback = CatbugBot.genericCatbugEmbed()
+        const feedback = CatbugEmbeds.genericCatbugEmbed()
         try {
             await GuildSettings.updateOne({ guildId: message.guild?.id }, { $set: { prefix: args.newPrefix } })
             feedback.setDescription(`Your prefix has been updated to \`${args.newPrefix}\``)

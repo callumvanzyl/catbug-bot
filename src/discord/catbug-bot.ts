@@ -1,13 +1,22 @@
 import "../config"
 
-import { Client, Guild, Message, MessageEmbed, TextChannel } from "discord.js"
+import { Client, Guild, Message, TextChannel } from "discord.js"
+import FuzzySet from "fuzzyset.js"
 import mongoose from "mongoose"
 
 import { GuildSettings } from "../schema/guild-settings"
-import { CommandCoordinator } from "./command-coordinator"
+import { BotCommand } from "./bot-command"
+import { CatbugEmbeds } from "./catbug-embeds"
+import { CommandArgs } from "./command-args"
+import { DebugCommand } from "./commands/debug"
+import { PrefixCommand } from "./commands/prefix"
 import { Logger } from "./logger"
 
 export class CatbugBot {
+    static readonly commands = CatbugBot.buildCommandList()
+
+    static readonly fuzzySet = CatbugBot.buildFuzzySet(CatbugBot.commands)
+
     readonly client: Client
 
     readonly logger: Logger
@@ -50,18 +59,46 @@ export class CatbugBot {
         return true
     }
 
-    static genericCatbugEmbed(): MessageEmbed {
-        return new MessageEmbed()
-            .setColor("#72daef")
-            .setFooter(`Need help? Visit catb.ug/help`, process.env.BOT_ICON_URL)
+    // COMMANDS
+    private async execute(message: Message, commandName: string, args: string[]): Promise<void> {
+        const command = CatbugBot.findCommand(commandName)
+
+        if (!command) {
+            const feedback = CatbugEmbeds.genericCatbugEmbed()
+            const alternative = CatbugBot.fuzzySet.get(commandName)?.[0][1]
+            feedback.setDescription(
+                `\`${commandName}\` isn't recognized as a valid command!\n` +
+                    `${alternative !== undefined ? `Did you mean \`${alternative}\`?` : ""}`,
+            )
+            await message.channel.send(feedback)
+            return
+        }
+
+        let buildArgsResult
+        try {
+            buildArgsResult = await command.buildArgs(args)
+            await command.execute(this, message, buildArgsResult)
+        } catch (error) {
+            const feedback = CatbugEmbeds.genericCatbugEmbed()
+            feedback.setDescription(error.message)
+            await message.channel.send(feedback)
+        }
     }
 
-    static internalErrorCatbugEmbed(): MessageEmbed {
-        return CatbugBot.genericCatbugEmbed()
-            .setTitle("An Error Occurred")
-            .setDescription("Please contact `Callum#1337` for assistance")
+    private static findCommand(commandName: string | string[]): BotCommand<CommandArgs> {
+        return CatbugBot.commands.filter((command) => [command.name].flat().includes(commandName))[0]
     }
 
+    private static buildCommandList(): BotCommand<CommandArgs>[] {
+        return [DebugCommand, PrefixCommand]
+    }
+
+    private static buildFuzzySet(commands: BotCommand<CommandArgs>[]): FuzzySet {
+        return FuzzySet(commands.map((c) => c.name) as string[])
+    }
+    // END OF COMMANDS
+
+    // EVENT HANDLERS
     private static async onJoinGuild(guild: Guild): Promise<void> {
         if (!guild.available) {
             await guild.leave()
@@ -84,7 +121,7 @@ export class CatbugBot {
                 Logger.logSuccessToConsole(`Successfully initialised in guild ${guild.id}`)
             } catch (error) {
                 Logger.logErrorToConsole(error.message)
-                await writableChannel.send(CatbugBot.internalErrorCatbugEmbed())
+                await writableChannel.send(CatbugEmbeds.internalErrorCatbugEmbed())
                 await guild.leave()
             }
         }
@@ -106,9 +143,11 @@ export class CatbugBot {
         if (!shifted) return
         const commandName = shifted.toLowerCase()
 
-        await CommandCoordinator.execute(this, message, commandName, args)
+        await this.execute(message, commandName, args)
     }
+    // END OF EVENT HANDLERS
 
+    // UTILS
     private static findFirstWritableChannel(guild: Guild): TextChannel {
         const channels = guild.channels.cache
             .filter((channel) => channel.type === "text")
@@ -121,4 +160,5 @@ export class CatbugBot {
         if (channels.size === 0) throw new Error(`No writable channels were found in guild ${guild.id}`)
         return channels.first() as TextChannel
     }
+    // END OF UTILS
 }
